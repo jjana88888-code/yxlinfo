@@ -30,8 +30,8 @@ body{
     linear-gradient(180deg, var(--bg1), var(--bg0));
 }
 
-.hero{ padding: 18px 18px 12px; }
-.heroInner{ max-width: 1120px; margin: 0 auto; }
+.hero{ padding: 14px 18px 10px; }
+.heroInner{ max-width: 980px; margin: 0 auto; }
 
 .card{
   background: linear-gradient(180deg, var(--card), var(--card2));
@@ -42,13 +42,15 @@ body{
 
 .headline{
   display:flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items:center;
   gap: 12px;
   flex-wrap: wrap;
+
+  text-align: center;
 }
 
-.brand{ display:flex; gap: 12px; align-items:center; }
+.brand{ display:flex; gap: 12px; align-items:center; justify-content:center; }
 .logo{
   width: 64px; height: 64px;
   border-radius: 16px;
@@ -58,7 +60,7 @@ body{
 .brandName{ font-weight: 950; letter-spacing: .2px; font-size: 18px; }
 .brandSub{ color: var(--muted); font-weight: 900; font-size: 12px; margin-top: 2px; }
 
-.stats{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; }
+.stats{ display:flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .stat{
   padding: 10px 12px;
   border-radius: 16px;
@@ -74,10 +76,12 @@ body{
 .toolbar{
   margin-top: 12px;
   display:flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items:center;
   gap: 10px;
   flex-wrap: wrap;
+
+  text-align: center;
 }
 .legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; 
   margin-left: 12px;
@@ -97,7 +101,7 @@ body{
 .s2{ background: var(--t2); }
 .s3{ background: var(--t3); }
 
-.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; align-items:center; }
+.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items:center; }
 .search, .select{
   border: 1px solid var(--border);
   background: rgba(0,0,0,.12);
@@ -126,7 +130,7 @@ body{
 .hintRow{ margin-top: 10px; }
 .hint{ color: var(--muted); font-weight: 900; font-size: 12px; }
 
-.wrap{ max-width: 1120px; margin: 0 auto; padding: 0 18px 28px; }
+.wrap{ max-width: 980px; margin: 0 auto; padding: 0 18px 28px; }
 
 .board{ overflow:hidden; }
 .boardHeader{
