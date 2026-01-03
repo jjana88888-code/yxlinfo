@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>YB 랭킹</title>
-  <link rel="stylesheet" href="./styles.css?v=6a-html-1" />
+  <link rel="stylesheet" href="./styles.css?v=6b-fix-ids" />
 </head>
 <body>
   <main class="wrap">
@@ -22,6 +22,8 @@
         <span class="sumItem"><span class="sumLabel">평균</span> <span class="sumValue" id="metaAvg">-</span></span>
         <span class="dot">·</span>
         <span class="sumItem"><span class="sumLabel">인원</span> <span class="sumValue" id="metaCount">-</span></span>
+        <span id="metaRefresh" class="isHidden">-</span>
+        <span id="tableMeta" class="isHidden">-</span>
       </div>
 
       <div class="miniActions">
@@ -45,7 +47,7 @@
     </div>
 
     <div class="legendRow">
-      <div class="legend" id="legend"></div>
+      <div class="legend" id="legend"></div><div id="legendInline" class="isHidden"></div>
     </div>
   </div>
 
