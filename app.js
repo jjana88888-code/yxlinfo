@@ -386,3 +386,17 @@ if (typeof render === 'function') {
     }catch(e){}
   }
 }
+
+
+// ===== v6a metaTotal fill (best-effort) =====
+function setMetaTotalFromRows(){
+  const el = document.getElementById('metaTotal');
+  if(!el) return;
+  // Try to compute from rendered DOM values (data-value attr) first
+  const vals = Array.from(document.querySelectorAll('.row [data-raw]')).map(n=>Number(n.getAttribute('data-raw'))).filter(Number.isFinite);
+  if(vals.length){
+    const sum = vals.reduce((a,b)=>a+b,0);
+    el.textContent = new Intl.NumberFormat('ko-KR').format(sum);
+  }
+}
+document.addEventListener('DOMContentLoaded', ()=>setTimeout(setMetaTotalFromRows, 0));
