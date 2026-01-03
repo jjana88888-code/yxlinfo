@@ -235,6 +235,7 @@ function render(){
     el("metaCount").textContent = "-";
     el("metaAvg").textContent = "-";
     el("metaRefresh").textContent = "-";
+    const mt0 = document.getElementById("metaTotal"); if (mt0) mt0.textContent = "-";
     return;
   }
 
@@ -272,6 +273,8 @@ function render(){
   }).join("");
 
   const { avg, count, refresh } = computeMeta(rawRows);
+  const total = rawRows.reduce((a,b)=>a+(b.value||0),0);
+  const mt = document.getElementById("metaTotal"); if (mt) mt.textContent = fmt.format(total);
   el("metaCount").textContent = fmt.format(count) + "명";
   el("metaAvg").textContent = fmt.format(avg);
   el("metaRefresh").textContent = formatRefresh(refresh);
