@@ -77,6 +77,27 @@ body{
 .legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; 
   margin-left: 12px;
 }
+.filterBar{
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.filterBar .legend{ margin-left: 0; justify-content:flex-start; }
+.genderTabs{
+  display:flex;
+  justify-content:flex-end;
+  gap: 8px;
+  margin-top: 0;
+}
+
+@media (max-width: 860px){
+  .filterBar{ flex-direction: column; align-items: center; }
+  .filterBar .legend{ justify-content:center; }
+  .genderTabs{ justify-content:center; }
+}
+
 .legendChip{
   display:flex; align-items:center; gap: 8px;
   padding: 7px 10px;
@@ -636,14 +657,6 @@ body{
   width: 36px;
   height: 36px;
 }
-.legendRow{
-  display:flex;
-  justify-content: center;
-}
-.legendRow .legend{
-  justify-content: center;
-}
-
 @media (max-width: 860px){
   .logoCenter{ width: 96px; height: 96px; }
   .summaryLine{ flex-direction: column; align-items: center; }
@@ -652,12 +665,6 @@ body{
 
 
 /* Gender tabs */
-.genderTabs{
-  display:flex;
-  justify-content:center;
-  gap: 8px;
-  margin-top: 4px;
-}
 .tabBtn{
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(0,0,0,.12);
@@ -677,5 +684,4 @@ body{
   box-shadow: 0 0 0 3px rgba(124,92,255,.14);
 }
 @media (max-width: 860px){
-  .genderTabs{ flex-wrap: wrap; }
-}
+  }

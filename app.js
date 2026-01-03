@@ -17,9 +17,9 @@ const CONFIG = {
   // ✅ IMPORTANT: 숫자(min)와 라벨이 일치해야 함.
   // 지금 데이터가 127,144처럼 '십만 단위'라면: 10만+/5만+/2만+가 자연스럽습니다.
   tiers: [
-    { key: "T1", min: 100000, label: "10만+" },
-    { key: "T2", min: 50000,  label: "5만+" },
-    { key: "T3", min: 20000,  label: "2만+" },
+    { key: "T1", min: 500000, label: "50만+" },
+    { key: "T2", min: 300000, label: "30만+" },
+    { key: "T3", min: 100000, label: "10만+" },
   ],
 
   // 점유율 표시(지저분하면 false)
@@ -120,7 +120,88 @@ function parseExcelToRows(workbook){
   if (!ws) throw new Error("워크시트가 없습니다.");
 
   const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+  const headers = Object.keys(json?.[0] || {});
 
+  // ============ 1) 분리형(남자/여자 테이블이 한 시트에 좌우로 있는 형태) 지원 ============
+  const findSplitCol = (prefix, key) => {
+    const p = normalizeHeader(prefix);
+    const candidates = (CONFIG.headerCandidates[key] || []).map(normalizeHeader);
+    for (const h of headers){
+      const nh = normalizeHeader(h);
+      if (!nh || !nh.includes(p)) continue;
+      const tail = nh.replace(p, "");
+      // exact match first
+      if (candidates.includes(tail)) return h;
+    }
+    // fallback: includes match
+    for (const h of headers){
+      const nh = normalizeHeader(h);
+      if (!nh || !nh.includes(p)) continue;
+      const tail = nh.replace(p, "");
+      for (const c of candidates){
+        if (!c) continue;
+        if (tail.includes(c) || c.includes(tail)) return h;
+      }
+    }
+    return null;
+  };
+
+  const male = {
+    rank: findSplitCol("남자", "rank"),
+    name: findSplitCol("남자", "name"),
+    value: findSplitCol("남자", "value"),
+  };
+  const female = {
+    rank: findSplitCol("여자", "rank"),
+    name: findSplitCol("여자", "name"),
+    value: findSplitCol("여자", "value"),
+  };
+  const refreshCol = map.refresh || buildHeaderMap(headers).refresh;
+
+  const hasSplit = !!(male.name && male.value && female.name && female.value);
+
+  if (hasSplit){
+    const out = [];
+    for (const r of json){
+      const refresh = refreshCol ? r[refreshCol] : null;
+
+      const mName = (r[male.name] ?? "").toString().trim();
+      if (mName){
+        const mRankRaw = male.rank ? r[male.rank] : null;
+        const mRank = (mRankRaw === null || mRankRaw === undefined || mRankRaw === "") ? NaN : Number(mRankRaw);
+        const mValue = Number(r[male.value] ?? 0) || 0;
+        out.push({ rank: mRank, name: mName, value: mValue, refresh, gender: "남" });
+      }
+
+      const fName = (r[female.name] ?? "").toString().trim();
+      if (fName){
+        const fRankRaw = female.rank ? r[female.rank] : null;
+        const fRank = (fRankRaw === null || fRankRaw === undefined || fRankRaw === "") ? NaN : Number(fRankRaw);
+        const fValue = Number(r[female.value] ?? 0) || 0;
+        out.push({ rank: fRank, name: fName, value: fValue, refresh, gender: "여" });
+      }
+    }
+
+    // 성별별 rank가 없다면(또는 깨졌다면) 값으로 재계산
+    const fillRankIfMissing = (g) => {
+      const group = out.filter(x => x.gender === g);
+      const hasValid = group.some(x => Number.isFinite(x.rank));
+      if (!hasValid){
+        group.sort((a,b)=> (b.value||0) - (a.value||0));
+        group.forEach((x, i) => x.rank = i + 1);
+      }
+    };
+    fillRankIfMissing("남");
+    fillRankIfMissing("여");
+
+    // 전체(rankOverall)는 항상 value 기준으로 재계산(성별 랭킹과 충돌 방지)
+    const sortedAll = [...out].sort((a,b)=> (b.value||0) - (a.value||0));
+    sortedAll.forEach((x, i) => { x.rankOverall = i + 1; });
+
+    return { rows: out, sheetName };
+  }
+
+  // ============ 2) 통합형(행 단위, 성별 컬럼 포함 가능) ============
   if (!map.name || !map.value){
     const sampleHeaders = Object.keys(json?.[0] || {}).slice(0, 12).join(", ");
     throw new Error(`엑셀 헤더를 인식하지 못했습니다. (시트: ${sheetName}) 헤더 예시: ${sampleHeaders}`);
@@ -129,14 +210,19 @@ function parseExcelToRows(workbook){
   const out = json.map(r => {
     const rankRaw = map.rank ? r[map.rank] : null;
     const name = (r[map.name] ?? "").toString().trim();
-    const value = Number(r[map.value] ?? 0);
+    const value = Number(r[map.value] ?? 0) || 0;
     const refresh = map.refresh ? r[map.refresh] : null;
+
     const genderRaw = map.gender ? r[map.gender] : null;
-    const rank = rankRaw === null || rankRaw === undefined || rankRaw === "" ? NaN : Number(rankRaw);
+    const rank = (rankRaw === null || rankRaw === undefined || rankRaw === "") ? NaN : Number(rankRaw);
+
     const g = String(genderRaw ?? "").trim();
-    const gender = g === "남" || g.toLowerCase() === "m" || g.toLowerCase() === "male" ? "남"
-      : g === "여" || g.toLowerCase() === "f" || g.toLowerCase() === "female" ? "여"
+    const gl = g.toLowerCase();
+    const gender =
+      (g === "남" || g.includes("남") || gl === "m" || gl === "male") ? "남"
+      : (g === "여" || g.includes("여") || gl === "f" || gl === "female") ? "여"
       : g;
+
     return { rank, name, value, refresh, gender };
   }).filter(r => r.name);
 
@@ -157,6 +243,10 @@ function parseExcelToRows(workbook){
     if (!Number.isFinite(r.rank)) r.rank = next;
     next = Math.max(next, r.rank + 1);
   }
+
+  // 전체(rankOverall)는 value 기준으로 계산
+  const sortedAll = [...out].sort((a,b)=> (b.value||0) - (a.value||0));
+  sortedAll.forEach((x, i) => { x.rankOverall = i + 1; });
 
   return { rows: out, sheetName };
 }
@@ -228,7 +318,12 @@ function applyFilters(){
   if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
 
   if (currentSort === "rank"){
-    rows.sort((a,b)=> a.rank - b.rank);
+    const key = (currentGender === "all") ? "rankOverall" : "rank";
+    rows.sort((a,b)=>{
+      const ar = Number.isFinite(a?.[key]) ? a[key] : (Number.isFinite(a.rank) ? a.rank : 1e9);
+      const br = Number.isFinite(b?.[key]) ? b[key] : (Number.isFinite(b.rank) ? b.rank : 1e9);
+      return ar - br;
+    });
   } else if (currentSort === "value"){
     rows.sort((a,b)=> (b.value||0) - (a.value||0));
   } else {
@@ -263,9 +358,14 @@ function render(){
       ? `<div class="valueSub">점유율 ${(Math.round(share*1000)/10)}%</div>`
       : ``;
 
+    const displayRank = (currentGender === "all")
+      ? (Number.isFinite(r.rankOverall) ? r.rankOverall : r.rank)
+      : r.rank;
+    const dr = Number.isFinite(displayRank) ? displayRank : r.rank;
+
     return `
-      <div class="${rowTopClass(r.rank)}">
-        <div class="rankNum ${rankClass(r.rank)}">${r.rank}${topIcon(r.rank)}</div>
+      <div class="${rowTopClass(dr)}">
+        <div class="rankNum ${rankClass(dr)}">${dr}${topIcon(dr)}</div>
 
         <div class="nameCol">
           <div class="nameLine">
