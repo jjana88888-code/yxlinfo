@@ -417,3 +417,24 @@ body{
   .boardTopInner{ grid-template-columns: 90px 1fr; }
   .boardTop .stats, .boardTop .toolbar, .boardTop .actions{ justify-content:flex-start; }
 }
+
+
+/* Logo-only header: remove logo card look */
+.logo{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Tighten top header area since stats removed */
+.boardTopInner{
+  grid-template-columns: 96px 1fr;
+}
+.brand{ width: 96px; }
+.logo{ width: 88px; height: 88px; }
+@media (max-width: 860px){
+  .boardTopInner{ grid-template-columns: 72px 1fr; }
+  .brand{ width: 72px; }
+  .logo{ width: 64px; height: 64px; }
+}
