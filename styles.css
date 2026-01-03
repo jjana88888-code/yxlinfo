@@ -30,7 +30,7 @@ body{
     linear-gradient(180deg, var(--bg1), var(--bg0));
 }
 
-.hero{ padding: 18px 18px 12px; }
+.hero{ padding: 16px 18px 10px; }
 .heroInner{ max-width: 1120px; margin: 0 auto; }
 
 .card{
@@ -42,7 +42,7 @@ body{
 
 .headline{
   display:flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items:center;
   gap: 12px;
   flex-wrap: wrap;
@@ -50,7 +50,7 @@ body{
 
 .brand{ display:flex; gap: 12px; align-items:center; }
 .logo{
-  width: 52px; height: 52px;
+  width: 150px; height: 150px;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: rgba(0,0,0,.18);
@@ -60,13 +60,13 @@ body{
 
 .stats{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; }
 .stat{
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 16px;
   border: 1px solid var(--border);
   background: rgba(0,0,0,.14);
   min-width: 124px;
 }
-.stat.muted{ background: rgba(0,0,0,.10); }
+.stat.muted{ background: rgba(0,0,0,.085); }
 .statLabel{ color: var(--muted); font-weight: 900; font-size: 12px; }
 .statValue{ margin-top: 6px; font-weight: 950; font-size: 20px; font-variant-numeric: tabular-nums; }
 .statValue.small{ font-size: 13px; color: rgba(105,240,255,.9); }
@@ -79,7 +79,9 @@ body{
   gap: 10px;
   flex-wrap: wrap;
 }
-.legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; }
+.legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; 
+  margin-left: 12px;
+}
 .legendChip{
   display:flex; align-items:center; gap: 8px;
   padding: 7px 10px;
@@ -100,18 +102,18 @@ body{
   border: 1px solid var(--border);
   background: rgba(0,0,0,.12);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
   outline: none;
 }
-.search{ min-width: 200px; }
-.select{ min-width: 120px; }
+.search{ min-width: 170px; }
+.select{ min-width: 110px; }
 .search:focus,.select:focus{ border-color: rgba(105,240,255,.35); }
 
 .btn{
   border: 1px solid var(--border);
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 950;
   background: rgba(138,107,255,.18);
@@ -148,11 +150,11 @@ body{
   grid-template-columns: 64px 1fr 170px;
   gap: 12px;
   align-items:center;
-  padding: 12px 12px;
+  padding: 10px 12px;
   border-radius: 16px;
-  background: rgba(0,0,0,.10);
-  border: 1px solid rgba(255,255,255,.06);
-  margin-bottom: 10px;
+  background: rgba(0,0,0,.085);
+  border: 1px solid rgba(255,255,255,.045);
+  margin-bottom: 8px;
 }
 .row:hover{ border-color: rgba(105,240,255,.18); background: rgba(0,0,0,.14); }
 
@@ -170,21 +172,21 @@ body{
 }
 
 /* top3: special but clean (no big gradients) */
-.row.top1{ border-color: rgba(255,211,106,.22); box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+.row.top1{ border-color: rgba(255,211,106,.22); box-shadow: 0 8px 26px rgba(0,0,0,.26); }
 .row.top2{ border-color: rgba(105,240,255,.18); }
 .row.top3{ border-color: rgba(138,255,138,.16); }
-.rankNum.top1{ border-color: rgba(255,211,106,.45); box-shadow: 0 0 18px rgba(255,211,106,.22); }
-.rankNum.top2{ border-color: rgba(105,240,255,.40); box-shadow: 0 0 16px rgba(105,240,255,.18); }
-.rankNum.top3{ border-color: rgba(138,255,138,.30); box-shadow: 0 0 14px rgba(138,255,138,.14); }
+.rankNum.top1{ border-color: rgba(255,211,106,.45); box-shadow: 0 0 10px rgba(255,211,106,.14); }
+.rankNum.top2{ border-color: rgba(105,240,255,.40); box-shadow: 0 0 9px rgba(105,240,255,.12); }
+.rankNum.top3{ border-color: rgba(138,255,138,.30); box-shadow: 0 0 8px rgba(138,255,138,.10); }
 
 .medal{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 10px;
-  margin-left: 8px;
+  margin-left: 6px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(0,0,0,.12);
 }
@@ -241,8 +243,8 @@ body{
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 950;
 }
@@ -255,5 +257,5 @@ body{
   .value{ grid-column: 2 / 3; justify-self: end; }
   .valueSub{ grid-column: 2 / 3; justify-self: end; }
   .search{ min-width: 160px; }
-  .stat{ min-width: 120px; }
+  .stat{ min-width: 110px; }
 }

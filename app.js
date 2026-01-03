@@ -231,10 +231,10 @@ function render(){
   const rowsEl = el("rows");
   if (!viewRows.length){
     rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
-    el("tableMeta").textContent = "-";
-    el("metaCount").textContent = "-";
-    el("metaAvg").textContent = "-";
-    el("metaRefresh").textContent = "-";
+    const tm0 = document.getElementById("tableMeta"); if (tm0) tm0.textContent = "-";
+    const mc=document.getElementById("metaCount"); if(mc) mc.textContent = fmt.format(count) + "명";
+    const ma=document.getElementById("metaAvg"); if(ma) ma.textContent = fmt.format(avg);
+    const mr=document.getElementById("metaRefresh"); if(mr) mr.textContent = formatRefresh(refresh);
     return;
   }
 
@@ -272,10 +272,10 @@ function render(){
   }).join("");
 
   const { avg, count, refresh } = computeMeta(rawRows);
-  el("metaCount").textContent = fmt.format(count) + "명";
-  el("metaAvg").textContent = fmt.format(avg);
-  el("metaRefresh").textContent = formatRefresh(refresh);
-  el("tableMeta").textContent = `표시 ${viewRows.length}명 · 갱신 ${formatRefresh(refresh)}`;
+  const mc=document.getElementById("metaCount"); if(mc) mc.textContent = fmt.format(count) + "명";
+  const ma=document.getElementById("metaAvg"); if(ma) ma.textContent = fmt.format(avg);
+  const mr=document.getElementById("metaRefresh"); if(mr) mr.textContent = formatRefresh(refresh);
+  const tm = document.getElementById("tableMeta"); if (tm) tm.textContent = `표시 ${viewRows.length}명 · 갱신 ${formatRefresh(refresh)}`;
 }
 
 function exportCsv(){
