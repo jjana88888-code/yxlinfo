@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YB Dashboard</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <meta name="color-scheme" content="dark light">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <!-- 사용자가 준비할 로고: assets/yb-logo.png 로 교체 -->
+      <img class="logo" src="./assets/yb-logo-placeholder.svg" alt="YB Logo" />
+      <div class="brandText">
+        <div class="brandTitle">YB 대시보드</div>
+        <div class="brandSub" id="periodText">월별 누적 별풍선 • GitHub Pages</div>
+      </div>
+    </div>
+
+    <div class="topActions">
+      <button class="btn ghost" id="btnReload" title="엑셀 다시 불러오기">새로고침</button>
+      <button class="btn ghost" id="btnExport" title="현재 표 CSV로 다운로드">CSV 내보내기</button>
+      <label class="btn ghost fileBtn" title="내 PC의 엑셀 업로드">
+        엑셀 업로드
+        <input id="fileInput" type="file" accept=".xlsx,.xls" />
+      </label>
+      <button class="btn" id="btnTheme" title="테마 전환">테마</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="kpis">
+      <div class="card kpi">
+        <div class="kpiLabel">총 누적</div>
+        <div class="kpiValue" id="kpiTotal">-</div>
+        <div class="kpiSub" id="kpiTotalSub">상위권 집중도 확인</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpiLabel">평균</div>
+        <div class="kpiValue" id="kpiAvg">-</div>
+        <div class="kpiSub" id="kpiAvgSub">인원 기준 평균</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpiLabel">참여 인원</div>
+        <div class="kpiValue" id="kpiCount">-</div>
+        <div class="kpiSub" id="kpiCountSub">랭킹 산출 대상</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpiLabel">갱신 시간</div>
+        <div class="kpiValue" id="kpiRefresh">-</div>
+        <div class="kpiSub" id="kpiRefreshSub">쿼리 기준</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card panel">
+        <div class="panelHeader">
+          <div class="panelTitle">TOP 분포</div>
+          <div class="panelActions">
+            <select id="topN" class="select">
+              <option value="5">TOP 5</option>
+              <option value="10" selected>TOP 10</option>
+              <option value="15">TOP 15</option>
+              <option value="999">전체</option>
+            </select>
+          </div>
+        </div>
+        <div class="panelBody">
+          <canvas id="barChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panelHeader">
+          <div class="panelTitle">검색 · 필터</div>
+          <div class="panelActions hint" id="dataHint">data/YB.xlsx 자동 로드 시도</div>
+        </div>
+        <div class="panelBody controls">
+          <div class="controlRow">
+            <label class="controlLabel">이름 검색</label>
+            <input id="searchInput" class="input" placeholder="예) 태영" />
+          </div>
+
+          <div class="controlRow">
+            <label class="controlLabel">정렬</label>
+            <div class="seg">
+              <button class="segBtn active" data-sort="rank" id="sortRank">순위</button>
+              <button class="segBtn" data-sort="value" id="sortValue">별풍선</button>
+              <button class="segBtn" data-sort="name" id="sortName">이름</button>
+            </div>
+          </div>
+
+          <div class="controlRow">
+            <label class="controlLabel">티어 기준</label>
+            <div class="tierRow">
+              <div class="tierChip"><span class="dot t1"></span><span id="tier1Text">100,000+</span></div>
+              <div class="tierChip"><span class="dot t2"></span><span id="tier2Text">50,000+</span></div>
+              <div class="tierChip"><span class="dot t3"></span><span id="tier3Text">20,000+</span></div>
+            </div>
+            <div class="tierHelp">※ 기준은 app.js에서 숫자만 바꾸면 즉시 적용됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tableCard">
+      <div class="panelHeader">
+        <div class="panelTitle">월별 누적 랭킹</div>
+        <div class="panelActions">
+          <div class="muted" id="tableMeta">-</div>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table" id="rankTable">
+          <thead>
+            <tr>
+              <th class="col-rank">순위</th>
+              <th class="col-name">비제이</th>
+              <th class="col-tier">티어</th>
+              <th class="col-value">월별 누적별풍선</th>
+              <th class="col-share">점유율</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="5" class="empty">데이터 로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="muted">
+        • 엑셀 원본: <code>/data/YB.xlsx</code> (GitHub Pages에 함께 업로드하면 자동으로 불러옵니다)
+        • 로고: <code>/assets/yb-logo.png</code> 로 교체하세요
+      </div>
+    </footer>
+  </main>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script src="./app.js"></script>
+</body>
+</html>
