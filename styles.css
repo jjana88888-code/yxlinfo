@@ -46,14 +46,17 @@ body{
   box-shadow: var(--shadow);
 }
 
-.headline{ display:flex; align-items:flex-start; justify-content: space-between; gap: 16px; }
+.headline{ display:grid; grid-template-columns: 120px 1fr; align-items:start; gap: 16px; }
 
-.brand{ display:flex; align-items:flex-start; justify-content:flex-start; }
+
+.brand{ width: 120px; display:flex; align-items:flex-start; justify-content:flex-start; position: relative; }
+
 .logo{ width: 96px; height: 96px; object-fit: contain; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.12); }
 .brandName{ font-weight: 950; letter-spacing: .2px; font-size: 18px; }
 .brandSub{ color: var(--muted); font-weight: 900; font-size: 12px; margin-top: 2px; }
 
-.stats{ display:flex; gap: 12px; flex-wrap: wrap; justify-content:flex-end; }
+.stats{ display:flex; gap: 12px; flex-wrap: wrap; justify-content:flex-end; align-self: flex-end; max-width: 100%; }
+
 .stat{
   padding: 10px 12px;
   border-radius: 16px;
@@ -66,7 +69,8 @@ body{
 .statValue{ margin-top: 6px; font-weight: 950; font-size: 20px; font-variant-numeric: tabular-nums; }
 .statValue.small{ font-size: 13px; color: rgba(105,240,255,.9); }
 
-.toolbar{ display:flex; justify-content:flex-end; align-items:center; gap: 12px; flex-wrap: wrap; }
+.toolbar{ display:flex; justify-content:flex-end; align-items:center; gap: 12px; flex-wrap: wrap; max-width: 100%; }
+
 .legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; 
   margin-left: 12px;
 }
@@ -85,16 +89,12 @@ body{
 .s2{ background: var(--t2); }
 .s3{ background: var(--t3); }
 
-.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; align-items:center; }
-.search, .select{
-  border: 1px solid var(--border);
-  background: rgba(0,0,0,.12);
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 12px;
-  outline: none;
-}
-.search{ min-width: 200px; }
+.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; align-items:center; max-width: 100%; }
+
+.search, .select{ min-width: 110px; max-width: 140px; }
+
+.search{ min-width: 180px; max-width: 260px; }
+
 .select{ min-width: 120px; }
 .search:focus,.select:focus{ border-color: rgba(105,240,255,.35); }
 
@@ -250,7 +250,8 @@ body{
 }
 
 
-.rightBlock{ display:flex; flex-direction:column; align-items:flex-end; gap: 12px; width: 100%; }
+.rightBlock{ width: 100%; display:flex; flex-direction:column; align-items:stretch; gap: 12px; min-width: 0; }
+
 
 
 /* Logo gradient halo */
@@ -279,4 +280,30 @@ body{
     0 16px 50px rgba(0,0,0,.55),
     0 0 24px rgba(46,231,255,.16),
     0 0 18px rgba(124,92,255,.12);
+}
+
+
+/* Overall gradient polish (subtle) */
+.shell, .board, .panel, .table{
+  background-image:
+    radial-gradient(900px 520px at 12% 0%, color-mix(in srgb, var(--a2) 10%, transparent), transparent 62%),
+    radial-gradient(900px 520px at 88% 0%, color-mix(in srgb, var(--a1) 9%, transparent), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+  background-blend-mode: screen, screen, normal;
+}
+
+.row{
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--a1) 6%, transparent),
+      rgba(255,255,255,.01) 45%,
+      color-mix(in srgb, var(--a2) 6%, transparent));
+}
+
+@media (max-width: 860px){
+  .headline{ grid-template-columns: 90px 1fr; }
+  .brand{ width: 90px; }
+  .logo{ width: 84px; height: 84px; }
+  .search{ min-width: 140px; max-width: 100%; }
+  .stats, .toolbar, .actions{ justify-content:flex-start; }
 }
