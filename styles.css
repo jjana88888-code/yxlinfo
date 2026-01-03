@@ -649,3 +649,33 @@ body{
   .summaryLine{ flex-direction: column; align-items: center; }
   .miniActions{ justify-content: center; }
 }
+
+
+/* Gender tabs */
+.genderTabs{
+  display:flex;
+  justify-content:center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tabBtn{
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.12);
+  color: rgba(255,255,255,.82);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 950;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter .12s ease, border-color .12s ease, background .12s ease;
+}
+.tabBtn:hover{ filter: brightness(1.08); border-color: rgba(255,255,255,.18); }
+.tabBtn.active{
+  background: rgba(124,92,255,.22);
+  border-color: rgba(124,92,255,.35);
+  color: rgba(255,255,255,.94);
+  box-shadow: 0 0 0 3px rgba(124,92,255,.14);
+}
+@media (max-width: 860px){
+  .genderTabs{ flex-wrap: wrap; }
+}

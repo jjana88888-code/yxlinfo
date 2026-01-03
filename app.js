@@ -10,7 +10,9 @@ const CONFIG = {
     name: ["비제이명", "BJ명", "BJ", "이름", "닉네임", "스트리머", "방송인", "name", "Name"],
     value: ["월별 누적별풍선", "월별누적별풍선", "누적별풍선", "누적 별풍선", "별풍선", "풍력", "기여도", "value", "Value"],
     refresh: ["새로고침시간", "새로고침 시간", "갱신시간", "업데이트시간", "업데이트 시간", "refresh", "Refresh"],
-  },
+  
+    gender: ["성별", "남여", "구분", "Gender", "gender", "sex", "Sex"],
+},
 
   // ✅ IMPORTANT: 숫자(min)와 라벨이 일치해야 함.
   // 지금 데이터가 127,144처럼 '십만 단위'라면: 10만+/5만+/2만+가 자연스럽습니다.
@@ -27,6 +29,7 @@ const CONFIG = {
 let rawRows = [];
 let viewRows = [];
 let currentSort = "rank";
+let currentGender = "all"; // all | 남 | 여
 
 const el = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("ko-KR");
@@ -94,7 +97,7 @@ function buildHeaderMap(headers){
     }
     return null;
   };
-  return { rank: pick("rank"), name: pick("name"), value: pick("value"), refresh: pick("refresh") };
+  return { rank: pick("rank"), name: pick("name"), value: pick("value"), refresh: pick("refresh"), gender: pick("gender") };
 }
 function findBestSheet(workbook){
   for (const sheetName of workbook.SheetNames){
@@ -128,8 +131,13 @@ function parseExcelToRows(workbook){
     const name = (r[map.name] ?? "").toString().trim();
     const value = Number(r[map.value] ?? 0);
     const refresh = map.refresh ? r[map.refresh] : null;
+    const genderRaw = map.gender ? r[map.gender] : null;
     const rank = rankRaw === null || rankRaw === undefined || rankRaw === "" ? NaN : Number(rankRaw);
-    return { rank, name, value, refresh };
+    const g = String(genderRaw ?? "").trim();
+    const gender = g === "남" || g.toLowerCase() === "m" || g.toLowerCase() === "male" ? "남"
+      : g === "여" || g.toLowerCase() === "f" || g.toLowerCase() === "female" ? "여"
+      : g;
+    return { rank, name, value, refresh, gender };
   }).filter(r => r.name);
 
   const hasValidRank = out.some(r => Number.isFinite(r.rank));
@@ -178,7 +186,7 @@ function tierOf(value){
 }
 
 function renderLegend(){
-  const host = document.getElementById("legendInline");
+  const host = document.getElementById("legend") || document.getElementById("legendInline");
   if (!host) return;
   host.innerHTML = CONFIG.tiers.map((t, idx) => {
     const cls = idx === 0 ? "s1" : (idx === 1 ? "s2" : "s3");
@@ -213,6 +221,10 @@ function applyFilters(){
   const q = el("searchInput").value.trim().toLowerCase();
   let rows = [...rawRows];
 
+  if (currentGender !== "all"){
+    rows = rows.filter(r => (r.gender || "").toString().trim() === currentGender);
+  }
+
   if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
 
   if (currentSort === "rank"){
@@ -239,8 +251,8 @@ function render(){
     return;
   }
 
-  const totalAll = rawRows.reduce((a,b)=>a+(b.value||0),0) || 1;
-  const maxVal = Math.max(...rawRows.map(r=>r.value||0), 1);
+  const totalAll = viewRows.reduce((a,b)=>a+(b.value||0),0) || 1;
+  const maxVal = Math.max(...viewRows.map(r=>r.value||0), 1);
 
   rowsEl.innerHTML = viewRows.map(r => {
     const t = tierOf(r.value||0);
@@ -272,8 +284,8 @@ function render(){
     `;
   }).join("");
 
-  const { avg, count, refresh } = computeMeta(rawRows);
-  const total = rawRows.reduce((a,b)=>a+(b.value||0),0);
+  const { avg, count, refresh } = computeMeta(viewRows);
+  const total = viewRows.reduce((a,b)=>a+(b.value||0),0);
   const mt = document.getElementById("metaTotal"); if (mt) mt.textContent = fmt.format(total);
   el("metaCount").textContent = fmt.format(count) + "명";
   el("metaAvg").textContent = fmt.format(avg);
@@ -312,7 +324,25 @@ async function loadAndRender(workbook, label){
 async function boot(){
   renderLegend();
 
+  // default tab active
+  const tabHost0 = document.getElementById("genderTabs");
+  if (tabHost0){
+    const b0 = tabHost0.querySelector('button[data-gender="all"]');
+    if (b0) b0.classList.add("active");
+  }
+
   el("searchInput").addEventListener("input", applyFilters);
+  // Gender tabs (전체/여자/남자)
+  const tabHost = document.getElementById("genderTabs");
+  if (tabHost){
+    tabHost.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-gender]");
+      if (!btn) return;
+      currentGender = btn.getAttribute("data-gender") || "all";
+      tabHost.querySelectorAll("button[data-gender]").forEach(b => b.classList.toggle("active", b === btn));
+      applyFilters();
+    });
+  }
   el("sortSelect").addEventListener("change", (e) => {
     currentSort = e.target.value;
     applyFilters();
@@ -357,49 +387,3 @@ el("btnReload").addEventListener("click", async () => {
 
 boot();
 
-
-// ===== Effects Pack (v6) =====
-function applyRankClasses(){
-  document.querySelectorAll('.row').forEach((row, i)=>{
-    row.classList.add(`rank-${i+1}`);
-  });
-}
-
-function applyAvgLine(avgRatio){
-  const board = document.querySelector('.rows');
-  if(!board) return;
-  let line = document.querySelector('.avgLine');
-  if(!line){
-    line = document.createElement('div');
-    line.className='avgLine';
-    board.appendChild(line);
-  }
-  line.style.left = `${Math.min(100, Math.max(0, avgRatio*100))}%`;
-}
-
-if (typeof render === 'function') {
-  const _render = render;
-  render = function(...args){
-    _render.apply(this, args);
-    applyRankClasses();
-    try{
-      if(window.__meta && window.__meta.avg && window.__meta.max){
-        applyAvgLine(window.__meta.avg / window.__meta.max);
-      }
-    }catch(e){}
-  }
-}
-
-
-// ===== v6a metaTotal fill (best-effort) =====
-function setMetaTotalFromRows(){
-  const el = document.getElementById('metaTotal');
-  if(!el) return;
-  // Try to compute from rendered DOM values (data-value attr) first
-  const vals = Array.from(document.querySelectorAll('.row [data-raw]')).map(n=>Number(n.getAttribute('data-raw'))).filter(Number.isFinite);
-  if(vals.length){
-    const sum = vals.reduce((a,b)=>a+b,0);
-    el.textContent = new Intl.NumberFormat('ko-KR').format(sum);
-  }
-}
-document.addEventListener('DOMContentLoaded', ()=>setTimeout(setMetaTotalFromRows, 0));
