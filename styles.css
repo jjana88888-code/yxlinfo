@@ -23,7 +23,32 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+  color:var(--text);
+
+  /* Completely different background: aurora + grid + vignette (not like reference) */
+  background:
+    radial-gradient(1100px 520px at 20% -10%, rgba(105,240,255,.28), transparent 55%),
+    radial-gradient(900px 560px at 85% 0%, rgba(138,107,255,.30), transparent 60%),
+    radial-gradient(820px 560px at 50% 18%, rgba(255,211,106,.10), transparent 62%),
+    linear-gradient(120deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 55%),
+    /* faint diagonal lines */
+    repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, rgba(255,255,255,0) 1px 14px),
+    /* subtle dot grid */
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 1.2px),
+    var(--bg);
+  background-size:
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    22px 22px,
+    auto;
+  background-attachment: fixed;
+}
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR","Apple SD Gothic Neo",sans-serif;
@@ -39,7 +64,7 @@ body{
 .heroInner{ max-width: 1120px; margin: 0 auto; }
 
 .card{
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  background: linear-gradient(180deg, rgba(10,12,18,.72), rgba(6,8,12,.62));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -317,3 +342,17 @@ body{
   .search{ min-width: 160px; }
   .statCard{ min-width: 120px; }
 }
+
+
+/* v4: aurora sheen band (unique look) */
+.hero::before{
+  content:"";
+  position:absolute;
+  left:0; right:0; top:0;
+  height: 220px;
+  pointer-events:none;
+  background: radial-gradient(800px 120px at 50% 35%, rgba(105,240,255,.12), transparent 60%),
+              radial-gradient(700px 140px at 70% 20%, rgba(138,107,255,.14), transparent 60%);
+  filter: blur(0.2px);
+}
+.hero{ position: relative; overflow: hidden; }

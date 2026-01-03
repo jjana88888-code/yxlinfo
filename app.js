@@ -1,17 +1,19 @@
-/* YB Rankboard v3 – headline(stats) + readable ranking board.
-   Excel 기반(업로드한 YB.xlsx 기준):
-   - 시트: 쿼리1
-   - 컬럼: 순위, 비제이명, 월별 누적별풍선, 새로고침시간
+/* YB Rankboard v3 (robust) – Excel 쿼리/헤더가 바뀌어도 최대한 자동으로 붙게 만든 버전.
+   - 시트명이 바뀌어도: '헤더(순위/이름/값/갱신)'를 포함한 시트를 자동 탐색
+   - 컬럼명이 살짝 바뀌어도: 후보 목록(동의어)로 자동 매핑
+   - 순위 컬럼이 없으면: 값 내림차순 기준으로 자동 순위 생성
 */
 const CONFIG = {
   defaultXlsxUrl: "./data/YB.xlsx",
-  sheetName: "쿼리1",
-  columns: {
-    rank: "순위",
-    name: "비제이명",
-    value: "월별 누적별풍선",
-    refresh: "새로고침시간",
+
+  // ✅ 여기서 필요하면 동의어만 추가하면 됨
+  headerCandidates: {
+    rank: ["순위", "랭킹", "등수", "Rank", "rank"],
+    name: ["비제이명", "BJ명", "BJ", "이름", "닉네임", "스트리머", "방송인", "name", "Name"],
+    value: ["월별 누적별풍선", "월별누적별풍선", "누적별풍선", "누적 별풍선", "별풍선", "풍력", "기여도", "value", "Value"],
+    refresh: ["새로고침시간", "새로고침 시간", "갱신시간", "업데이트시간", "업데이트 시간", "refresh", "Refresh"],
   },
+
   // 티어 기준(원하면 숫자만 바꾸면 됨)
   tiers: [
     { key: "T1", min: 100000, label: "100만+" },
@@ -58,14 +60,12 @@ function rankClass(r){
   if (r === 3) return "top3";
   return "";
 }
-
 function rowTopClass(r){
   if (r === 1) return "row top1";
   if (r === 2) return "row top2";
   if (r === 3) return "row top3";
   return "row";
 }
-
 function topIcon(r){
   if (r === 1) return `<span class="medal" title="1등">${crownSvg()}</span>`;
   if (r === 2) return `<span class="medal" title="2등">${medalSvg()}</span>`;
@@ -74,7 +74,7 @@ function topIcon(r){
 }
 
 function escapeHtml(s){
-  return String(s)
+  return String(s ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;")
@@ -82,21 +82,105 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
+function normalizeHeader(h){
+  return String(h ?? "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function buildHeaderMap(headers){
+  // headers: array of original header strings
+  const norm = headers.map(normalizeHeader);
+  const pick = (key) => {
+    const candidates = CONFIG.headerCandidates[key].map(normalizeHeader);
+    for (let i=0;i<norm.length;i++){
+      if (!norm[i]) continue;
+      if (candidates.includes(norm[i])) return headers[i]; // return original header
+    }
+    // fuzzy contains match
+    for (let i=0;i<norm.length;i++){
+      if (!norm[i]) continue;
+      for (const c of candidates){
+        if (c && norm[i].includes(c)) return headers[i];
+        if (c && c.includes(norm[i])) return headers[i];
+      }
+    }
+    return null;
+  };
+
+  return {
+    rank: pick("rank"),
+    name: pick("name"),
+    value: pick("value"),
+    refresh: pick("refresh"),
+  };
+}
+
+function findBestSheet(workbook){
+  // try each sheet: convert first row as header + map
+  for (const sheetName of workbook.SheetNames){
+    const ws = workbook.Sheets[sheetName];
+    if (!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    if (!rows || !rows.length) continue;
+    const headers = (rows[0] || []).filter(h => h !== null && h !== undefined);
+    if (!headers.length) continue;
+
+    const map = buildHeaderMap(rows[0] || []);
+    // if we can find at least name & value, accept (rank optional)
+    if (map.name && map.value){
+      return { sheetName, map };
+    }
+  }
+  // fallback: first sheet
+  const sheetName = workbook.SheetNames[0];
+  const ws = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const map = buildHeaderMap((rows && rows[0]) || []);
+  return { sheetName, map };
+}
+
 function parseExcelToRows(workbook){
-  const ws = workbook.Sheets[CONFIG.sheetName] || workbook.Sheets[workbook.SheetNames[0]];
+  const { sheetName, map } = findBestSheet(workbook);
+  const ws = workbook.Sheets[sheetName];
   if (!ws) throw new Error("워크시트가 없습니다.");
 
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+  const json = XLSX.utils.sheet_to_json(ws, { defval: null });
 
-  const out = rows.map(r => {
-    const rank = Number(r[CONFIG.columns.rank]);
-    const name = (r[CONFIG.columns.name] ?? "").toString().trim();
-    const value = Number(r[CONFIG.columns.value] ?? 0);
-    const refresh = r[CONFIG.columns.refresh];
+  // If header mapping failed, give a clear hint
+  if (!map.name || !map.value){
+    const sampleHeaders = Object.keys(json?.[0] || {}).slice(0, 12).join(", ");
+    throw new Error(`엑셀 헤더를 인식하지 못했습니다. (시트: ${sheetName}) 헤더 예시: ${sampleHeaders}`);
+  }
+
+  const out = json.map(r => {
+    const rankRaw = map.rank ? r[map.rank] : null;
+    const name = (r[map.name] ?? "").toString().trim();
+    const value = Number(r[map.value] ?? 0);
+    const refresh = map.refresh ? r[map.refresh] : null;
+    const rank = rankRaw === null || rankRaw === undefined || rankRaw === "" ? NaN : Number(rankRaw);
     return { rank, name, value, refresh };
-  }).filter(r => r.name && !Number.isNaN(r.rank));
+  }).filter(r => r.name);
 
-  return out;
+  // If rank missing for many rows, auto-generate rank by value desc
+  const hasValidRank = out.some(r => Number.isFinite(r.rank));
+  if (!hasValidRank){
+    out.sort((a,b)=> (b.value||0) - (a.value||0));
+    out.forEach((r, i) => r.rank = i + 1);
+  }
+
+  // If rank exists but gaps/NaN exist, fill missing ranks after sorting by rank then value
+  out.sort((a,b)=>{
+    const ar = Number.isFinite(a.rank) ? a.rank : 1e9;
+    const br = Number.isFinite(b.rank) ? b.rank : 1e9;
+    if (ar !== br) return ar - br;
+    return (b.value||0) - (a.value||0);
+  });
+  let next = 1;
+  for (const r of out){
+    if (!Number.isFinite(r.rank)) r.rank = next;
+    next = Math.max(next, r.rank + 1);
+  }
+
+  return { rows: out, sheetName };
 }
 
 async function loadDefaultXlsx(){
@@ -169,7 +253,6 @@ function render(){
   if (!viewRows.length){
     rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
     el("tableMeta").textContent = "-";
-    // header stats fallback
     el("metaCount").textContent = "-";
     el("metaAvg").textContent = "-";
     el("metaRefresh").textContent = "-";
@@ -213,7 +296,6 @@ function render(){
   el("metaCount").textContent = fmt.format(count) + "명";
   el("metaAvg").textContent = fmt.format(avg);
   el("metaRefresh").textContent = formatRefresh(refresh);
-
   el("tableMeta").textContent = `표시 ${viewRows.length}명 · 갱신 ${formatRefresh(refresh)}`;
 }
 
@@ -221,7 +303,7 @@ function exportCsv(){
   if (!viewRows.length) return;
   const totalAll = rawRows.reduce((a,b)=>a+(b.value||0),0) || 1;
 
-  const header = ["순위","비제이명","월별 누적별풍선","점유율"];
+  const header = ["순위","이름","값","점유율"];
   const lines = viewRows.map(r => {
     const share = (r.value||0)/totalAll;
     return [r.rank, r.name, r.value||0, (share*100).toFixed(1)+"%"].join(",");
@@ -238,6 +320,13 @@ function exportCsv(){
   URL.revokeObjectURL(url);
 }
 
+async function loadAndRender(workbook, label){
+  const parsed = parseExcelToRows(workbook);
+  rawRows = parsed.rows;
+  setHint(`${label} 로드 완료 (시트: ${parsed.sheetName})`);
+  applyFilters();
+}
+
 async function boot(){
   updateLegend();
 
@@ -251,9 +340,7 @@ async function boot(){
   el("btnReload").addEventListener("click", async () => {
     try{
       const wb = await loadDefaultXlsx();
-      rawRows = parseExcelToRows(wb);
-      setHint("data/YB.xlsx 로드 완료");
-      applyFilters();
+      await loadAndRender(wb, "data/YB.xlsx");
     }catch(e){
       setHint(e.message);
       console.error(e);
@@ -267,20 +354,16 @@ async function boot(){
       setHint("업로드 파일 읽는 중…");
       const ab = await readFileAsArrayBuffer(file);
       const wb = XLSX.read(ab, { type:"array" });
-      rawRows = parseExcelToRows(wb);
-      setHint(`업로드 로드 완료: ${file.name}`);
-      applyFilters();
+      await loadAndRender(wb, file.name);
     }catch(err){
-      setHint("엑셀을 읽지 못했습니다. 시트/컬럼명을 확인해주세요.");
+      setHint("엑셀을 읽지 못했습니다. 시트/헤더명을 확인해주세요.");
       console.error(err);
     }
   });
 
   try{
     const wb = await loadDefaultXlsx();
-    rawRows = parseExcelToRows(wb);
-    setHint("data/YB.xlsx 로드 완료");
-    applyFilters();
+    await loadAndRender(wb, "data/YB.xlsx");
   }catch(e){
     setHint("data/YB.xlsx 자동 로드 실패 → 엑셀 업로드 버튼을 사용하세요");
     rawRows = [];
