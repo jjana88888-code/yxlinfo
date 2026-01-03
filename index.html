@@ -46,17 +46,13 @@
       </div>
     </div>
 
-        <div class="filterBar" aria-label="필터">
-      <div class="legend" id="legend"></div>
-
-      <div class="genderTabs" id="genderTabs" role="tablist" aria-label="성별 탭">
-        <button class="tabBtn" type="button" data-gender="all" role="tab" aria-selected="true">전체</button>
-        <button class="tabBtn" type="button" data-gender="여" role="tab">여자</button>
-        <button class="tabBtn" type="button" data-gender="남" role="tab">남자</button>
+    <div class="legendRow">
+      <div class="legend legendLeft" id="legendInline"></div>
+      <div class="genderTabs" id="genderTabs" role="tablist" aria-label="성별 보기">
+        <button class="tabBtn isActive" data-tab="all" role="tab" aria-selected="true">전체</button>
+        <button class="tabBtn" data-tab="male" role="tab" aria-selected="false">남자</button>
+        <button class="tabBtn" data-tab="female" role="tab" aria-selected="false">여자</button>
       </div>
-    </div>
-
-    <div id="legendInline" class="isHidden"></div><div id="legendInline" class="isHidden"></div>
     </div>
   </div>
 

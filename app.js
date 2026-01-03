@@ -10,9 +10,7 @@ const CONFIG = {
     name: ["비제이명", "BJ명", "BJ", "이름", "닉네임", "스트리머", "방송인", "name", "Name"],
     value: ["월별 누적별풍선", "월별누적별풍선", "누적별풍선", "누적 별풍선", "별풍선", "풍력", "기여도", "value", "Value"],
     refresh: ["새로고침시간", "새로고침 시간", "갱신시간", "업데이트시간", "업데이트 시간", "refresh", "Refresh"],
-  
-    gender: ["성별", "남여", "구분", "Gender", "gender", "sex", "Sex"],
-},
+  },
 
   // ✅ IMPORTANT: 숫자(min)와 라벨이 일치해야 함.
   // 지금 데이터가 127,144처럼 '십만 단위'라면: 10만+/5만+/2만+가 자연스럽습니다.
@@ -22,14 +20,22 @@ const CONFIG = {
     { key: "T3", min: 100000, label: "10만+" },
   ],
 
+
   // 점유율 표시(지저분하면 false)
   showShare: false,
 };
 
-let rawRows = [];
-let viewRows = [];
+let rawRows = []; // combined (meta용)
+let rawMaleRows = [];
+let rawFemaleRows = [];
+
+let viewRows = [];      // 단일 보기(남자/여자)
+let viewMaleRows = [];  // 전체 보기(왼쪽)
+let viewFemaleRows = []; // 전체 보기(오른쪽)
+
+let currentTab = "all"; // all | male | female
+
 let currentSort = "rank";
-let currentGender = "all"; // all | 남 | 여
 
 const el = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("ko-KR");
@@ -97,7 +103,7 @@ function buildHeaderMap(headers){
     }
     return null;
   };
-  return { rank: pick("rank"), name: pick("name"), value: pick("value"), refresh: pick("refresh"), gender: pick("gender") };
+  return { rank: pick("rank"), name: pick("name"), value: pick("value"), refresh: pick("refresh") };
 }
 function findBestSheet(workbook){
   for (const sheetName of workbook.SheetNames){
@@ -114,142 +120,164 @@ function findBestSheet(workbook){
   const map = buildHeaderMap((rows && rows[0]) || []);
   return { sheetName, map };
 }
-function parseExcelToRows(workbook){
-  const { sheetName, map } = findBestSheet(workbook);
-  const ws = workbook.Sheets[sheetName];
-  if (!ws) throw new Error("워크시트가 없습니다.");
 
-  const json = XLSX.utils.sheet_to_json(ws, { defval: null });
-  const headers = Object.keys(json?.[0] || {});
+function buildSplitHeaderMap(headers){
+  // 헤더 예: "남자 순위","남자 비제이명","남자 월별 누적별풍선","여자 순위","여자 비제이명","여자 월별 누적별풍선"
+  const norm = headers.map(normalizeHeader);
+  const cand = (key) => CONFIG.headerCandidates[key].map(normalizeHeader);
 
-  // ============ 1) 분리형(남자/여자 테이블이 한 시트에 좌우로 있는 형태) 지원 ============
-  const findSplitCol = (prefix, key) => {
+  const pickWithPrefix = (prefix, key) => {
     const p = normalizeHeader(prefix);
-    const candidates = (CONFIG.headerCandidates[key] || []).map(normalizeHeader);
-    for (const h of headers){
-      const nh = normalizeHeader(h);
-      if (!nh || !nh.includes(p)) continue;
-      const tail = nh.replace(p, "");
-      // exact match first
-      if (candidates.includes(tail)) return h;
+    const cs = cand(key);
+    // 1) prefix + 후보 포함
+    for (let i=0;i<norm.length;i++){
+      if (!norm[i]) continue;
+      if (!norm[i].includes(p)) continue;
+      for (const c of cs){
+        if (c && norm[i].includes(c)) return headers[i];
+      }
     }
-    // fallback: includes match
-    for (const h of headers){
-      const nh = normalizeHeader(h);
-      if (!nh || !nh.includes(p)) continue;
-      const tail = nh.replace(p, "");
-      for (const c of candidates){
-        if (!c) continue;
-        if (tail.includes(c) || c.includes(tail)) return h;
+    // 2) 느슨 매칭(부분 포함)
+    for (let i=0;i<norm.length;i++){
+      if (!norm[i]) continue;
+      if (!norm[i].includes(p)) continue;
+      for (const c of cs){
+        if (c && (c.includes(norm[i]) || norm[i].includes(c))) return headers[i];
       }
     }
     return null;
   };
 
   const male = {
-    rank: findSplitCol("남자", "rank"),
-    name: findSplitCol("남자", "name"),
-    value: findSplitCol("남자", "value"),
+    rank: pickWithPrefix("남자", "rank"),
+    name: pickWithPrefix("남자", "name"),
+    value: pickWithPrefix("남자", "value"),
   };
   const female = {
-    rank: findSplitCol("여자", "rank"),
-    name: findSplitCol("여자", "name"),
-    value: findSplitCol("여자", "value"),
+    rank: pickWithPrefix("여자", "rank"),
+    name: pickWithPrefix("여자", "name"),
+    value: pickWithPrefix("여자", "value"),
   };
-  const refreshCol = map.refresh || buildHeaderMap(headers).refresh;
 
-  const hasSplit = !!(male.name && male.value && female.name && female.value);
+  // 새로고침 시간은 공용 1개 컬럼일 가능성이 큼
+  const common = buildHeaderMap(headers);
+  const refresh = common.refresh || pickWithPrefix("남자","refresh") || pickWithPrefix("여자","refresh");
 
-  if (hasSplit){
-    const out = [];
-    for (const r of json){
-      const refresh = refreshCol ? r[refreshCol] : null;
+  const ok = !!(male.name && male.value && female.name && female.value);
+  return { ok, male, female, refresh };
+}
 
-      const mName = (r[male.name] ?? "").toString().trim();
-      if (mName){
-        const mRankRaw = male.rank ? r[male.rank] : null;
-        const mRank = (mRankRaw === null || mRankRaw === undefined || mRankRaw === "") ? NaN : Number(mRankRaw);
-        const mValue = Number(r[male.value] ?? 0) || 0;
-        out.push({ rank: mRank, name: mName, value: mValue, refresh, gender: "남" });
-      }
+function normalizeName(v){
+  const s = String(v ?? "").trim();
+  return s ? s : null;
+}
+function coerceNumber(v){
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  const s = String(v).replaceAll(",","").trim();
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
+}
+function coerceRank(v){
+  if (v == null) return null;
+  const n = Number(String(v).replaceAll(",","").trim());
+  return Number.isFinite(n) ? n : null;
+}
 
-      const fName = (r[female.name] ?? "").toString().trim();
-      if (fName){
-        const fRankRaw = female.rank ? r[female.rank] : null;
-        const fRank = (fRankRaw === null || fRankRaw === undefined || fRankRaw === "") ? NaN : Number(fRankRaw);
-        const fValue = Number(r[female.value] ?? 0) || 0;
-        out.push({ rank: fRank, name: fName, value: fValue, refresh, gender: "여" });
-      }
-    }
-
-    // 성별별 rank가 없다면(또는 깨졌다면) 값으로 재계산
-    const fillRankIfMissing = (g) => {
-      const group = out.filter(x => x.gender === g);
-      const hasValid = group.some(x => Number.isFinite(x.rank));
-      if (!hasValid){
-        group.sort((a,b)=> (b.value||0) - (a.value||0));
-        group.forEach((x, i) => x.rank = i + 1);
-      }
-    };
-    fillRankIfMissing("남");
-    fillRankIfMissing("여");
-
-    // 전체(rankOverall)는 항상 value 기준으로 재계산(성별 랭킹과 충돌 방지)
-    const sortedAll = [...out].sort((a,b)=> (b.value||0) - (a.value||0));
-    sortedAll.forEach((x, i) => { x.rankOverall = i + 1; });
-
-    return { rows: out, sheetName };
+function finalizeRanks(list){
+  // rank가 비어 있으면 value 내림차순으로 새로 계산
+  const hasAnyRank = list.some(r => Number.isFinite(r.rank));
+  if (!hasAnyRank){
+    list.sort((a,b)=> (b.value||0) - (a.value||0));
+    list.forEach((r,i)=> r.rank = i+1);
+    return list;
   }
-
-  // ============ 2) 통합형(행 단위, 성별 컬럼 포함 가능) ============
-  if (!map.name || !map.value){
-    const sampleHeaders = Object.keys(json?.[0] || {}).slice(0, 12).join(", ");
-    throw new Error(`엑셀 헤더를 인식하지 못했습니다. (시트: ${sheetName}) 헤더 예시: ${sampleHeaders}`);
-  }
-
-  const out = json.map(r => {
-    const rankRaw = map.rank ? r[map.rank] : null;
-    const name = (r[map.name] ?? "").toString().trim();
-    const value = Number(r[map.value] ?? 0) || 0;
-    const refresh = map.refresh ? r[map.refresh] : null;
-
-    const genderRaw = map.gender ? r[map.gender] : null;
-    const rank = (rankRaw === null || rankRaw === undefined || rankRaw === "") ? NaN : Number(rankRaw);
-
-    const g = String(genderRaw ?? "").trim();
-    const gl = g.toLowerCase();
-    const gender =
-      (g === "남" || g.includes("남") || gl === "m" || gl === "male") ? "남"
-      : (g === "여" || g.includes("여") || gl === "f" || gl === "female") ? "여"
-      : g;
-
-    return { rank, name, value, refresh, gender };
-  }).filter(r => r.name);
-
-  const hasValidRank = out.some(r => Number.isFinite(r.rank));
-  if (!hasValidRank){
-    out.sort((a,b)=> (b.value||0) - (a.value||0));
-    out.forEach((r, i) => r.rank = i + 1);
-  }
-
-  out.sort((a,b)=>{
+  // rank 우선, 보조로 value 내림차순
+  list.sort((a,b)=>{
     const ar = Number.isFinite(a.rank) ? a.rank : 1e9;
     const br = Number.isFinite(b.rank) ? b.rank : 1e9;
     if (ar !== br) return ar - br;
     return (b.value||0) - (a.value||0);
   });
+  // 결번 채우기
   let next = 1;
-  for (const r of out){
+  for (const r of list){
     if (!Number.isFinite(r.rank)) r.rank = next;
     next = Math.max(next, r.rank + 1);
   }
-
-  // 전체(rankOverall)는 value 기준으로 계산
-  const sortedAll = [...out].sort((a,b)=> (b.value||0) - (a.value||0));
-  sortedAll.forEach((x, i) => { x.rankOverall = i + 1; });
-
-  return { rows: out, sheetName };
+  return list;
 }
+
+function parseExcelToRows(workbook){
+  // 1) 가장 적절한 시트를 찾고(기본 로직 유지) 헤더를 확인
+  const { sheetName } = findBestSheet(workbook);
+  const ws = workbook.Sheets[sheetName];
+  if (!ws) throw new Error("워크시트가 없습니다.");
+
+  const headerRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const headers = (headerRows && headerRows[0]) ? headerRows[0] : [];
+  const split = buildSplitHeaderMap(headers);
+
+  // 2) ✅ '남자/여자'가 좌우로 분리된 2개 표 형태면: male/female 각각 파싱
+  if (split.ok){
+    const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+    const male = [];
+    const female = [];
+
+    for (const o of json){
+      const refreshVal = split.refresh ? o[split.refresh] : null;
+
+      const mn = normalizeName(o[split.male.name]);
+      if (mn){
+        male.push({
+          rank: coerceRank(split.male.rank ? o[split.male.rank] : null),
+          name: mn,
+          value: coerceNumber(o[split.male.value]),
+          refresh: refreshVal ?? null
+        });
+      }
+
+      const fn = normalizeName(o[split.female.name]);
+      if (fn){
+        female.push({
+          rank: coerceRank(split.female.rank ? o[split.female.rank] : null),
+          name: fn,
+          value: coerceNumber(o[split.female.value]),
+          refresh: refreshVal ?? null
+        });
+      }
+    }
+
+    finalizeRanks(male);
+    finalizeRanks(female);
+
+    // combined는 메타(총/평균/인원/갱신) 계산용
+    const combined = [...male, ...female];
+    return { mode: "split", rows: combined, maleRows: male, femaleRows: female, sheetName };
+  }
+
+  // 3) ✅ 기존(단일 표) 파싱: 헤더 자동 인식
+  const { map } = findBestSheet(workbook);
+  const json = XLSX.utils.sheet_to_json(ws, { defval: null });
+
+  const out = [];
+  for (const o of json){
+    const name = normalizeName(o[map.name]);
+    if (!name) continue;
+    out.push({
+      rank: coerceRank(map.rank ? o[map.rank] : null),
+      name,
+      value: coerceNumber(o[map.value]),
+      refresh: map.refresh ? o[map.refresh] : null
+    });
+  }
+
+  finalizeRanks(out);
+
+  return { mode: "single", rows: out, sheetName };
+}
+
+
 
 async function loadDefaultXlsx(){
   setHint("data/YB.xlsx 불러오는 중…");
@@ -276,7 +304,7 @@ function tierOf(value){
 }
 
 function renderLegend(){
-  const host = document.getElementById("legend") || document.getElementById("legendInline");
+  const host = document.getElementById("legendInline");
   if (!host) return;
   host.innerHTML = CONFIG.tiers.map((t, idx) => {
     const cls = idx === 0 ? "s1" : (idx === 1 ? "s2" : "s3");
@@ -286,6 +314,26 @@ function renderLegend(){
     </span>`;
   }).join("");
 }
+function initGenderTabs(){
+  const host = document.getElementById("genderTabs");
+  if (!host) return;
+
+  host.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-tab]");
+    if (!btn) return;
+    const tab = btn.getAttribute("data-tab");
+    if (!tab) return;
+    currentTab = tab;
+    // active 표시
+    [...host.querySelectorAll("button[data-tab]")].forEach(b => {
+      const isOn = b.getAttribute("data-tab") === currentTab;
+      b.classList.toggle("isActive", isOn);
+      b.setAttribute("aria-selected", isOn ? "true" : "false");
+    });
+    applyFilters();
+  });
+}
+
 
 function computeMeta(rows){
   const total = rows.reduce((a,b)=>a+(b.value||0),0);
@@ -309,63 +357,47 @@ function formatRefresh(v){
 
 function applyFilters(){
   const q = el("searchInput").value.trim().toLowerCase();
-  let rows = [...rawRows];
 
-  if (currentGender !== "all"){
-    rows = rows.filter(r => (r.gender || "").toString().trim() === currentGender);
-  }
+  const filterAndSort = (src) => {
+    let rows = [...(src || [])];
+    if (q) rows = rows.filter(r => (r.name||"").toLowerCase().includes(q));
 
-  if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
+    if (currentSort === "rank"){
+      rows.sort((a,b)=> (a.rank||1e9) - (b.rank||1e9));
+    } else if (currentSort === "value"){
+      rows.sort((a,b)=> (b.value||0) - (a.value||0));
+    } else {
+      rows.sort((a,b)=> (a.name||"").localeCompare((b.name||""), "ko"));
+    }
+    return rows;
+  };
 
-  if (currentSort === "rank"){
-    const key = (currentGender === "all") ? "rankOverall" : "rank";
-    rows.sort((a,b)=>{
-      const ar = Number.isFinite(a?.[key]) ? a[key] : (Number.isFinite(a.rank) ? a.rank : 1e9);
-      const br = Number.isFinite(b?.[key]) ? b[key] : (Number.isFinite(b.rank) ? b.rank : 1e9);
-      return ar - br;
-    });
-  } else if (currentSort === "value"){
-    rows.sort((a,b)=> (b.value||0) - (a.value||0));
+  if (currentTab === "male"){
+    viewRows = filterAndSort(rawMaleRows);
+  } else if (currentTab === "female"){
+    viewRows = filterAndSort(rawFemaleRows);
   } else {
-    rows.sort((a,b)=> a.name.localeCompare(b.name, "ko"));
+    viewMaleRows = filterAndSort(rawMaleRows);
+    viewFemaleRows = filterAndSort(rawFemaleRows);
+    viewRows = []; // 전체는 분할 렌더
   }
 
-  viewRows = rows;
   render();
 }
 
-function render(){
-  const rowsEl = el("rows");
-  if (!viewRows.length){
-    rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
-    const tm0 = document.getElementById("tableMeta"); if (tm0) tm0.textContent = "-";
-    el("metaCount").textContent = "-";
-    el("metaAvg").textContent = "-";
-    el("metaRefresh").textContent = "-";
-    const mt0 = document.getElementById("metaTotal"); if (mt0) mt0.textContent = "-";
-    return;
-  }
-
-  const totalAll = viewRows.reduce((a,b)=>a+(b.value||0),0) || 1;
-  const maxVal = Math.max(...viewRows.map(r=>r.value||0), 1);
-
-  rowsEl.innerHTML = viewRows.map(r => {
+function renderListHTML(list, maxVal, totalAll){
+  return (list || []).map(r => {
     const t = tierOf(r.value||0);
-    const width = Math.max(2, Math.min(100, Math.round((r.value||0) / maxVal * 100)));
-    const share = (r.value||0)/totalAll;
+    const width = Math.max(2, Math.min(100, Math.round((r.value||0) / (maxVal||1) * 100)));
+    const share = (r.value||0) / (totalAll||1);
 
     const shareHtml = CONFIG.showShare
       ? `<div class="valueSub">점유율 ${(Math.round(share*1000)/10)}%</div>`
       : ``;
 
-    const displayRank = (currentGender === "all")
-      ? (Number.isFinite(r.rankOverall) ? r.rankOverall : r.rank)
-      : r.rank;
-    const dr = Number.isFinite(displayRank) ? displayRank : r.rank;
-
     return `
-      <div class="${rowTopClass(dr)}">
-        <div class="rankNum ${rankClass(dr)}">${dr}${topIcon(dr)}</div>
+      <div class="${rowTopClass(r.rank)}">
+        <div class="rankNum ${rankClass(r.rank)}">${r.rank}${topIcon(r.rank)}</div>
 
         <div class="nameCol">
           <div class="nameLine">
@@ -383,9 +415,80 @@ function render(){
       </div>
     `;
   }).join("");
+}
 
-  const { avg, count, refresh } = computeMeta(viewRows);
-  const total = viewRows.reduce((a,b)=>a+(b.value||0),0);
+function render(){
+  const rowsEl = el("rows");
+
+  const setMetaEmpty = () => {
+    const tm0 = document.getElementById("tableMeta"); if (tm0) tm0.textContent = "-";
+    el("metaCount").textContent = "-";
+    el("metaAvg").textContent = "-";
+    el("metaRefresh").textContent = "-";
+    const mt0 = document.getElementById("metaTotal"); if (mt0) mt0.textContent = "-";
+  };
+
+  // ✅ 전체(남/여 2분할) 보기
+  if (currentTab === "all"){
+    const male = viewMaleRows || [];
+    const female = viewFemaleRows || [];
+
+    const hasAny = male.length || female.length;
+    if (!hasAny){
+      rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
+      setMetaEmpty();
+      return;
+    }
+
+    const totalMale = male.reduce((a,b)=>a+(b.value||0),0) || 1;
+    const totalFemale = female.reduce((a,b)=>a+(b.value||0),0) || 1;
+    const maxMale = Math.max(...male.map(r=>r.value||0), 1);
+    const maxFemale = Math.max(...female.map(r=>r.value||0), 1);
+
+    rowsEl.innerHTML = `
+      <div class="splitGrid">
+        <div class="splitCol">
+          <div class="splitHead">남자</div>
+          <div class="splitRows">
+            ${male.length ? renderListHTML(male, maxMale, totalMale) : `<div class="empty small">남자 데이터 없음</div>`}
+          </div>
+        </div>
+        <div class="splitCol">
+          <div class="splitHead">여자</div>
+          <div class="splitRows">
+            ${female.length ? renderListHTML(female, maxFemale, totalFemale) : `<div class="empty small">여자 데이터 없음</div>`}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 메타는 combined 기준
+    const combined = [...(rawMaleRows||[]), ...(rawFemaleRows||[])];
+    const { avg, count, refresh } = computeMeta(combined);
+    const total = combined.reduce((a,b)=>a+(b.value||0),0);
+    const mt = document.getElementById("metaTotal"); if (mt) mt.textContent = fmt.format(total);
+    el("metaCount").textContent = fmt.format(count) + "명";
+    el("metaAvg").textContent = fmt.format(avg);
+    el("metaRefresh").textContent = formatRefresh(refresh);
+    const tm = document.getElementById("tableMeta"); if (tm) tm.textContent = `남자 ${male.length}명 · 여자 ${female.length}명 · 갱신 ${formatRefresh(refresh)}`;
+    return;
+  }
+
+  // ✅ 단일(남자/여자) 보기
+  if (!viewRows.length){
+    rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
+    setMetaEmpty();
+    return;
+  }
+
+  const activeRaw = (currentTab === "male") ? (rawMaleRows||[]) : (rawFemaleRows||[]);
+  const totalAll = activeRaw.reduce((a,b)=>a+(b.value||0),0) || 1;
+  const maxVal = Math.max(...activeRaw.map(r=>r.value||0), 1);
+
+  rowsEl.innerHTML = renderListHTML(viewRows, maxVal, totalAll);
+
+  const { avg, count, refresh } = computeMeta(activeRaw);
+  const total = activeRaw.reduce((a,b)=>a+(b.value||0),0);
   const mt = document.getElementById("metaTotal"); if (mt) mt.textContent = fmt.format(total);
   el("metaCount").textContent = fmt.format(count) + "명";
   el("metaAvg").textContent = fmt.format(avg);
@@ -416,33 +519,21 @@ function exportCsv(){
 
 async function loadAndRender(workbook, label){
   const parsed = parseExcelToRows(workbook);
-  rawRows = parsed.rows;
+
+  rawRows = parsed.rows || [];
+  rawMaleRows = parsed.maleRows || [];
+  rawFemaleRows = parsed.femaleRows || [];
+
   setHint(`${label} 로드 완료 (시트: ${parsed.sheetName})`);
   applyFilters();
 }
 
 async function boot(){
+  initGenderTabs();
+
   renderLegend();
 
-  // default tab active
-  const tabHost0 = document.getElementById("genderTabs");
-  if (tabHost0){
-    const b0 = tabHost0.querySelector('button[data-gender="all"]');
-    if (b0) b0.classList.add("active");
-  }
-
   el("searchInput").addEventListener("input", applyFilters);
-  // Gender tabs (전체/여자/남자)
-  const tabHost = document.getElementById("genderTabs");
-  if (tabHost){
-    tabHost.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-gender]");
-      if (!btn) return;
-      currentGender = btn.getAttribute("data-gender") || "all";
-      tabHost.querySelectorAll("button[data-gender]").forEach(b => b.classList.toggle("active", b === btn));
-      applyFilters();
-    });
-  }
   el("sortSelect").addEventListener("change", (e) => {
     currentSort = e.target.value;
     applyFilters();
@@ -487,3 +578,49 @@ el("btnReload").addEventListener("click", async () => {
 
 boot();
 
+
+// ===== Effects Pack (v6) =====
+function applyRankClasses(){
+  document.querySelectorAll('.row').forEach((row, i)=>{
+    row.classList.add(`rank-${i+1}`);
+  });
+}
+
+function applyAvgLine(avgRatio){
+  const board = document.querySelector('.rows');
+  if(!board) return;
+  let line = document.querySelector('.avgLine');
+  if(!line){
+    line = document.createElement('div');
+    line.className='avgLine';
+    board.appendChild(line);
+  }
+  line.style.left = `${Math.min(100, Math.max(0, avgRatio*100))}%`;
+}
+
+if (typeof render === 'function') {
+  const _render = render;
+  render = function(...args){
+    _render.apply(this, args);
+    applyRankClasses();
+    try{
+      if(window.__meta && window.__meta.avg && window.__meta.max){
+        applyAvgLine(window.__meta.avg / window.__meta.max);
+      }
+    }catch(e){}
+  }
+}
+
+
+// ===== v6a metaTotal fill (best-effort) =====
+function setMetaTotalFromRows(){
+  const el = document.getElementById('metaTotal');
+  if(!el) return;
+  // Try to compute from rendered DOM values (data-value attr) first
+  const vals = Array.from(document.querySelectorAll('.row [data-raw]')).map(n=>Number(n.getAttribute('data-raw'))).filter(Number.isFinite);
+  if(vals.length){
+    const sum = vals.reduce((a,b)=>a+b,0);
+    el.textContent = new Intl.NumberFormat('ko-KR').format(sum);
+  }
+}
+document.addEventListener('DOMContentLoaded', ()=>setTimeout(setMetaTotalFromRows, 0));
