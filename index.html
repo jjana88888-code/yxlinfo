@@ -7,36 +7,36 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <header class="hero">
-    <div class="heroInner">
-      <div class="headline">
+  <main class="page">
+    <section class="shell">
+      <!-- Top: brand + compact stats -->
+      <div class="top">
         <div class="brand">
           <img class="logo" src="./assets/yb-logo.png" alt="YB" />
           <div class="brandText">
             <div class="brandName">YB</div>
-            
           </div>
         </div>
 
         <div class="stats">
-          <div class="stat">
-            <div class="statLabel">총원</div>
-            <div class="statValue" id="metaCount">-</div>
+          <div class="chip">
+            <span class="chipLabel">총원</span>
+            <span class="chipValue" id="metaCount">-</span>
           </div>
-          <div class="stat">
-            <div class="statLabel">평균 풍력</div>
-            <div class="statValue" id="metaAvg">-</div>
+          <div class="chip">
+            <span class="chipLabel">평균 풍력</span>
+            <span class="chipValue" id="metaAvg">-</span>
           </div>
-          <div class="stat muted">
-            <div class="statLabel">갱신</div>
-            <div class="statValue small" id="metaRefresh">-</div>
+          <div class="chip chipMute">
+            <span class="chipLabel">갱신</span>
+            <span class="chipValue chipSmall" id="metaRefresh">-</span>
           </div>
         </div>
       </div>
 
+      <!-- Controls (kept, but visually light) -->
       <div class="toolbar">
         <div class="legend" id="legendInline" aria-label="tier legend"></div>
-
         <div class="actions">
           <input id="searchInput" class="search" placeholder="이름 검색" />
           <select id="sortSelect" class="select">
@@ -44,26 +44,23 @@
             <option value="value">별풍선순</option>
             <option value="name">이름순</option>
           </select>
-          <button class="btn" id="btnReload" title="data/YB.xlsx 다시 읽기">새로고침</button>
-          <label class="btn ghost fileBtn" title="내 PC 엑셀 업로드">
+          <button class="btn" id="btnReload">새로고침</button>
+          <label class="btn ghost fileBtn">
             엑셀 업로드
             <input id="fileInput" type="file" accept=".xlsx,.xls" />
           </label>
         </div>
       </div>
-      <div id="dataHint" style="display:none"></div>
-    </div>
-  </header>
 
-  <main class="wrap">
-    <section class="board card">
-      <div class="boardHeader">
-        <div class="boardTitle">랭킹</div>
-        <div class="boardRight">
-          <span class="muted" id="tableMeta">-</span>
-        </div>
+      <div id="dataHint" style="display:none"></div>
+
+      <!-- List header (subtle) -->
+      <div class="listHead">
+        <div class="listTitle">랭킹</div>
+        <div class="listMeta" id="tableMeta">-</div>
       </div>
 
+      <!-- Rows -->
       <div class="rows" id="rows">
         <div class="empty">데이터 로딩 중…</div>
       </div>

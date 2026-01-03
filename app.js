@@ -254,11 +254,7 @@ function render(){
       <div class="${rowTopClass(r.rank)}">
         <div class="rankNum ${rankClass(r.rank)}">${r.rank}${topIcon(r.rank)}</div>
 
-        <div class="nameCol">
-          <div class="nameLine">
-            <div class="name">${escapeHtml(r.name)}</div>
-          </div>
-          <div class="bar">
+        <div class="nameCol"><div class="name">${escapeHtml(r.name)}</div><div class="bar">
             <div class="barFill" style="width:${width}%; background:${t.colorVar};"></div>
           </div>
         </div>
