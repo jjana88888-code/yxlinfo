@@ -14,7 +14,7 @@
           <img class="logo" src="./assets/yb-logo.png" alt="YB" />
           <div class="brandText">
             <div class="brandName">YB</div>
-            <div class="brandSub">월별 누적 랭킹</div>
+            
           </div>
         </div>
 
@@ -51,10 +51,7 @@
           </label>
         </div>
       </div>
-
-      <div class="hintRow">
-        <div class="hint" id="dataHint">data/YB.xlsx 자동 로드 시도</div>
-      </div>
+      <div id="dataHint" style="display:none"></div>
     </div>
   </header>
 
@@ -69,11 +66,6 @@
 
       <div class="rows" id="rows">
         <div class="empty">데이터 로딩 중…</div>
-      </div>
-
-      <div class="boardFooter">
-        <div class="muted">• GitHub Pages 정적 랭킹보드 • 엑셀 쿼리 결과를 그대로 표시</div>
-        <button class="linkBtn" id="btnExport">CSV 내보내기</button>
       </div>
     </section>
   </main>

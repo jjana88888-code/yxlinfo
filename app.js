@@ -31,7 +31,7 @@ let currentSort = "rank";
 const el = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("ko-KR");
 
-function setHint(t){ el("dataHint").textContent = t; }
+function setHint(t){ const h = document.getElementById("dataHint"); if (h) h.textContent = t; }
 
 function crownSvg(){
   return `
@@ -314,9 +314,9 @@ async function boot(){
     currentSort = e.target.value;
     applyFilters();
   });
-  el("btnExport").addEventListener("click", exportCsv);
+  const be = document.getElementById("btnExport"); if (be) be.addEventListener("click", exportCsv);
 
-  el("btnReload").addEventListener("click", async () => {
+el("btnReload").addEventListener("click", async () => {
     try{
       const wb = await loadDefaultXlsx();
       await loadAndRender(wb, "data/YB.xlsx");
