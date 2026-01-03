@@ -118,7 +118,7 @@ body{
 .hintRow{ margin-top: 10px; }
 .hint{ color: var(--muted); font-weight: 900; font-size: 12px; }
 
-.wrap{ max-width: var(--contentW); margin: 0 auto; padding: 0 18px 28px; }
+.wrap{ max-width: var(--contentW); margin: 0 auto; padding: 18px 18px 28px; }
 
 .board{ padding: 0; }
 .boardHeader{
@@ -378,4 +378,42 @@ body{
 .search:focus-visible, .select:focus-visible, .btn:focus-visible{
   box-shadow: 0 0 0 3px rgba(124,92,255,.22), inset 0 1px 0 rgba(255,255,255,.06);
   border-color: rgba(124,92,255,.35);
+}
+
+
+/* Merge header into board card */
+.board.card{ position: relative; }
+.boardTop{
+  padding: 14px 14px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.boardTopInner{
+  display:grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.boardTop .rightBlock{
+  min-width:0;
+  display:grid;
+  grid-template-rows: auto auto;
+  gap: 10px;
+}
+.boardTop .stats{
+  justify-content:flex-end;
+}
+.boardTop .toolbar{
+  justify-content:flex-end;
+}
+.boardTop .actions{
+  justify-content:flex-end;
+}
+
+/* tighten rows so they feel connected */
+.rows{ padding-top: 10px; }
+
+/* Responsive: stack controls nicely */
+@media (max-width: 860px){
+  .boardTopInner{ grid-template-columns: 90px 1fr; }
+  .boardTop .stats, .boardTop .toolbar, .boardTop .actions{ justify-content:flex-start; }
 }
