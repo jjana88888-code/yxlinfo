@@ -1,4 +1,4 @@
-/* YB Rankboard – renders a reference-like ranking list.
+/* YB Rankboard v3 – headline(stats) + readable ranking board.
    Excel 기반(업로드한 YB.xlsx 기준):
    - 시트: 쿼리1
    - 컬럼: 순위, 비제이명, 월별 누적별풍선, 새로고침시간
@@ -14,13 +14,10 @@ const CONFIG = {
   },
   // 티어 기준(원하면 숫자만 바꾸면 됨)
   tiers: [
-    { key: "T1", min: 100000, label: "100만+" },   // 라벨은 원하는대로 바꿔도 됨
+    { key: "T1", min: 100000, label: "100만+" },
     { key: "T2", min: 50000,  label: "50만+" },
     { key: "T3", min: 20000,  label: "20만+" },
   ],
-  // 헤더 기간 텍스트(원하면 여기 수정)
-  periodMain: "25.12.01 — 12.31",
-  periodSub: "23:59 기준 집계",
 };
 
 let rawRows = [];
@@ -31,6 +28,21 @@ const el = (id) => document.getElementById(id);
 const fmt = new Intl.NumberFormat("ko-KR");
 
 function setHint(t){ el("dataHint").textContent = t; }
+
+function crownSvg(){
+  return `
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M3.5 8.5l4.8 4.2L12 6.8l3.7 5.9 4.8-4.2V18a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2V8.5Z" stroke="rgba(255,255,255,.85)" stroke-width="1.6" />
+  </svg>`;
+}
+
+function medalSvg(){
+  return `
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M8 3h8l-2.8 5.2a6.5 6.5 0 1 1-2.4 0L8 3Z" stroke="rgba(255,255,255,.85)" stroke-width="1.6"/>
+    <path d="M12 10.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" stroke="rgba(255,255,255,.85)" stroke-width="1.6"/>
+  </svg>`;
+}
 
 function tierOf(value){
   const [a,b,c] = CONFIG.tiers;
@@ -44,6 +56,20 @@ function rankClass(r){
   if (r === 1) return "top1";
   if (r === 2) return "top2";
   if (r === 3) return "top3";
+  return "";
+}
+
+function rowTopClass(r){
+  if (r === 1) return "row top1";
+  if (r === 2) return "row top2";
+  if (r === 3) return "row top3";
+  return "row";
+}
+
+function topIcon(r){
+  if (r === 1) return `<span class="medal" title="1등">${crownSvg()}</span>`;
+  if (r === 2) return `<span class="medal" title="2등">${medalSvg()}</span>`;
+  if (r === 3) return `<span class="medal" title="3등">${medalSvg()}</span>`;
   return "";
 }
 
@@ -90,10 +116,7 @@ function readFileAsArrayBuffer(file){
   });
 }
 
-function updateHeader(){
-  el("periodMain").textContent = CONFIG.periodMain;
-  el("periodSub").textContent = "⏱ " + CONFIG.periodSub;
-
+function updateLegend(){
   el("tier1Text").textContent = fmt.format(CONFIG.tiers[0].min) + "+";
   el("tier2Text").textContent = fmt.format(CONFIG.tiers[1].min) + "+";
   el("tier3Text").textContent = fmt.format(CONFIG.tiers[2].min) + "+";
@@ -146,6 +169,10 @@ function render(){
   if (!viewRows.length){
     rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
     el("tableMeta").textContent = "-";
+    // header stats fallback
+    el("metaCount").textContent = "-";
+    el("metaAvg").textContent = "-";
+    el("metaRefresh").textContent = "-";
     return;
   }
 
@@ -157,15 +184,14 @@ function render(){
     const width = Math.max(2, Math.min(100, Math.round((r.value||0) / maxVal * 100)));
     const share = (r.value||0)/totalAll;
     return `
-      <div class="row">
-        <div class="rankBox">
-          <div class="rankNum ${rankClass(r.rank)}">${r.rank}</div>
-        </div>
+      <div class="${rowTopClass(r.rank)}">
+        <div class="topFx"></div>
+        <div class="rankNum ${rankClass(r.rank)}">${r.rank}${topIcon(r.rank)}</div>
 
         <div class="nameCol">
           <div class="nameLine">
             <div class="name">${escapeHtml(r.name)}</div>
-            <div class="tierMark">
+            <div class="tierPill">
               ${t.text === "-" ? `<strong>-</strong>` : `<span class="dot ${t.dot}"></span><strong>${t.text}</strong>`}
             </div>
           </div>
@@ -183,11 +209,11 @@ function render(){
     `;
   }).join("");
 
-  const { total, avg, count, refresh } = computeMeta(rawRows);
-  el("metaTotal").textContent = fmt.format(total);
-  el("metaAvg").textContent = fmt.format(avg);
+  const { avg, count, refresh } = computeMeta(rawRows);
   el("metaCount").textContent = fmt.format(count) + "명";
-  el("avgText").textContent = "평균: " + fmt.format(avg);
+  el("metaAvg").textContent = fmt.format(avg);
+  el("metaRefresh").textContent = formatRefresh(refresh);
+
   el("tableMeta").textContent = `표시 ${viewRows.length}명 · 갱신 ${formatRefresh(refresh)}`;
 }
 
@@ -213,7 +239,7 @@ function exportCsv(){
 }
 
 async function boot(){
-  updateHeader();
+  updateLegend();
 
   el("searchInput").addEventListener("input", applyFilters);
   el("sortSelect").addEventListener("change", (e) => {
@@ -226,7 +252,7 @@ async function boot(){
     try{
       const wb = await loadDefaultXlsx();
       rawRows = parseExcelToRows(wb);
-      setHint("기본 엑셀 로드 완료");
+      setHint("data/YB.xlsx 로드 완료");
       applyFilters();
     }catch(e){
       setHint(e.message);

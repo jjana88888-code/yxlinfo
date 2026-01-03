@@ -9,30 +9,39 @@
 <body>
   <header class="hero">
     <div class="heroInner">
-      <div class="heroTop">
+      <div class="headline">
         <div class="brand">
-          <!-- 로고는 사용자가 교체: assets/yb-logo.png -->
           <img class="logo" src="./assets/yb-logo-placeholder.svg" alt="YB" />
           <div class="brandText">
             <div class="brandName">YB</div>
-            <div class="brandSub">월별 누적 랭킹</div>
+            <div class="brandSub">인원 현황 · 평균 풍력</div>
           </div>
         </div>
 
-        <div class="period">
-          <div class="periodMain" id="periodMain">—</div>
-          <div class="periodSub" id="periodSub">⏱ 집계 기준 —</div>
+        <div class="stats">
+          <div class="statCard">
+            <div class="statLabel">총원</div>
+            <div class="statValue" id="metaCount">-</div>
+          </div>
+          <div class="statCard">
+            <div class="statLabel">평균풍력</div>
+            <div class="statValue" id="metaAvg">-</div>
+          </div>
+          <div class="statCard ghost">
+            <div class="statLabel">갱신</div>
+            <div class="statValue small" id="metaRefresh">-</div>
+          </div>
         </div>
       </div>
 
-      <div class="legendRow">
-        <div class="legend">
+      <div class="toolbar">
+        <div class="legend" aria-label="tier legend">
           <span class="legendChip"><span class="dot t1"></span><span id="tier1Text">100,000+</span></span>
           <span class="legendChip"><span class="dot t2"></span><span id="tier2Text">50,000+</span></span>
           <span class="legendChip"><span class="dot t3"></span><span id="tier3Text">20,000+</span></span>
         </div>
 
-        <div class="heroActions">
+        <div class="actions">
           <input id="searchInput" class="search" placeholder="이름 검색" />
           <select id="sortSelect" class="select">
             <option value="rank" selected>순위순</option>
@@ -47,20 +56,8 @@
         </div>
       </div>
 
-      <div class="metaRow">
-        <div class="metaCard">
-          <div class="metaLabel">총합</div>
-          <div class="metaValue" id="metaTotal">-</div>
-        </div>
-        <div class="metaCard">
-          <div class="metaLabel">평균</div>
-          <div class="metaValue" id="metaAvg">-</div>
-        </div>
-        <div class="metaCard">
-          <div class="metaLabel">총원</div>
-          <div class="metaValue" id="metaCount">-</div>
-        </div>
-        <div class="metaHint" id="dataHint">data/YB.xlsx 자동 로드 시도</div>
+      <div class="hintRow">
+        <div class="hint" id="dataHint">data/YB.xlsx 자동 로드 시도</div>
       </div>
     </div>
   </header>
@@ -70,7 +67,6 @@
       <div class="boardHeader">
         <div class="boardTitle">랭킹</div>
         <div class="boardRight">
-          <span class="avgText" id="avgText">평균: -</span>
           <span class="muted" id="tableMeta">-</span>
         </div>
       </div>
@@ -80,7 +76,7 @@
       </div>
 
       <div class="boardFooter">
-        <div class="muted">• GitHub Pages 정적 대시보드 • 엑셀 쿼리 결과(시트: 쿼리1)를 그대로 표시</div>
+        <div class="muted">• GitHub Pages 정적 랭킹보드 • 엑셀 쿼리 결과(시트: 쿼리1)를 그대로 표시</div>
         <button class="linkBtn" id="btnExport">CSV 내보내기</button>
       </div>
     </section>
