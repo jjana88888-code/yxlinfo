@@ -353,3 +353,36 @@ el("btnReload").addEventListener("click", async () => {
 }
 
 boot();
+
+
+// ===== Effects Pack (v6) =====
+function applyRankClasses(){
+  document.querySelectorAll('.row').forEach((row, i)=>{
+    row.classList.add(`rank-${i+1}`);
+  });
+}
+
+function applyAvgLine(avgRatio){
+  const board = document.querySelector('.rows');
+  if(!board) return;
+  let line = document.querySelector('.avgLine');
+  if(!line){
+    line = document.createElement('div');
+    line.className='avgLine';
+    board.appendChild(line);
+  }
+  line.style.left = `${Math.min(100, Math.max(0, avgRatio*100))}%`;
+}
+
+if (typeof render === 'function') {
+  const _render = render;
+  render = function(...args){
+    _render.apply(this, args);
+    applyRankClasses();
+    try{
+      if(window.__meta && window.__meta.avg && window.__meta.max){
+        applyAvgLine(window.__meta.avg / window.__meta.max);
+      }
+    }catch(e){}
+  }
+}

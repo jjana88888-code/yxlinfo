@@ -492,3 +492,90 @@ body{
   white-space: nowrap !important;
   border: 0 !important;
 }
+
+
+/* ===== Effects Pack (v6) ===== */
+
+/* Top 1 glow pulse + crown breathe */
+@keyframes topPulse {
+  0%,100% { box-shadow: 0 0 0 rgba(255,180,70,.0); }
+  50% { box-shadow: 0 0 18px rgba(255,180,70,.35); }
+}
+@keyframes crownBreathe {
+  0%,100% { opacity: .85; }
+  50% { opacity: 1; }
+}
+.row.rank-1{
+  animation: topPulse 3s ease-in-out infinite;
+}
+.row.rank-1 .crown{
+  animation: crownBreathe 2.5s ease-in-out infinite;
+}
+
+/* Top 2/3 hover micro growth */
+.row.rank-2:hover .bar,
+.row.rank-3:hover .bar{
+  height: calc(var(--barH) + 2px);
+}
+
+/* Tier separation */
+.row.rank-4,
+.row.rank-5,
+.row.rank-6,
+.row.rank-7{
+  background-color: rgba(255,255,255,.02);
+}
+.row.rank-8,
+.row.rank-9,
+.row.rank-10{
+  opacity: .82;
+}
+.row.rank-8 .bar,
+.row.rank-9 .bar,
+.row.rank-10 .bar{
+  height: calc(var(--barH) - 1px);
+}
+
+/* Hover tooltip */
+.tooltip{
+  position: absolute;
+  pointer-events:none;
+  background: rgba(0,0,0,.75);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  transform: translate(-50%, -6px);
+  opacity: 0;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 10;
+}
+.row:hover .tooltip{
+  opacity: 1;
+  transform: translate(-50%, -10px);
+}
+
+/* Average reference line */
+.avgLine{
+  position:absolute;
+  top:0; bottom:0;
+  width:1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(160,120,255,.45) 0 6px,
+    transparent 6px 12px
+  );
+  opacity:.4;
+}
+
+/* Background gradient slow drift */
+@keyframes bgDrift {
+  0%{ background-position: 0% 50%; }
+  100%{ background-position: 100% 50%; }
+}
+body{
+  background-size: 200% 200%;
+  animation: bgDrift 14s linear infinite;
+}
