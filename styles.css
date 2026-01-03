@@ -195,7 +195,40 @@ body{
 .boardRight{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; justify-content:flex-end; }
 .mutedText{ color: var(--muted); font-weight: 900; font-size: 12px; }
 
-.rows{ padding: 12px 10px 14px; }
+/* ===== Rows area: keep dashboard size consistent ===== */
+:root{ --rowsH: 520px; }
+
+.rows{
+  padding: 12px 10px 14px;
+  /* keep the table dashboard size stable across tabs */
+  min-height: var(--rowsH);
+  max-height: var(--rowsH);
+  overflow: auto;
+}
+
+/* split(전체)에서는 컬럼 내부가 스크롤, 바깥은 고정 */
+.rows.isSplit{ overflow: hidden; }
+.rows.isSplit .splitGrid{ height: 100%; }
+.rows.isSplit .splitCol{ display:flex; flex-direction: column; height: 100%; }
+.rows.isSplit .splitRows{
+  flex: 1;
+  /* ✅ 남/여 컬럼 크기(가로)가 달라 보이는 원인: 한쪽만 스크롤바가 생기면 내용 폭이 줄어듦
+     → split 모드에서는 양쪽 모두 스크롤바 공간을 동일하게 확보 */
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 2px;
+}
+
+/* empty 상태도 영역 높이 유지 */
+.empty.emptyFull{ margin: auto; text-align:center; }
+
+@media (max-width: 920px){
+  /* 모바일에서는 내부 스크롤을 강제하지 않음 */
+  .rows{ min-height: auto; max-height: none; overflow: visible; }
+  .rows.isSplit{ overflow: visible; }
+  .rows.isSplit .splitRows{ overflow: visible; }
+}
 
 /* row: less “table”, more “list” */
 .row{

@@ -420,6 +420,9 @@ function renderListHTML(list, maxVal, totalAll){
 function render(){
   const rowsEl = el("rows");
 
+  // keep dashboard size stable & enable proper scrolling behavior
+  rowsEl.classList.toggle("isSplit", currentTab === "all");
+
   const setMetaEmpty = () => {
     const tm0 = document.getElementById("tableMeta"); if (tm0) tm0.textContent = "-";
     el("metaCount").textContent = "-";
@@ -435,7 +438,7 @@ function render(){
 
     const hasAny = male.length || female.length;
     if (!hasAny){
-      rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
+      rowsEl.innerHTML = `<div class="empty emptyFull">표시할 데이터가 없습니다.</div>`;
       setMetaEmpty();
       return;
     }
@@ -476,7 +479,7 @@ function render(){
 
   // ✅ 단일(남자/여자) 보기
   if (!viewRows.length){
-    rowsEl.innerHTML = `<div class="empty">표시할 데이터가 없습니다.</div>`;
+    rowsEl.innerHTML = `<div class="empty emptyFull">표시할 데이터가 없습니다.</div>`;
     setMetaEmpty();
     return;
   }
