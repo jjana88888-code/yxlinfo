@@ -16,10 +16,10 @@
   --a3:#65ff9a;   /* mint */
 
   /* tiers */
-  --t1:#ffd36a;
-  --t2:#69f0ff;
-  --t3:#8aff8a;
-  --t0: rgba(255,255,255,.22);
+  --t1: linear-gradient(90deg,#ffcf3c,#ff7a18);
+  --t2: linear-gradient(90deg,#2ee7ff,#2f7bff);
+  --t3: linear-gradient(90deg,#7dff6a,#00ffa8);
+  --t0: linear-gradient(90deg,rgba(255,255,255,.22),rgba(255,255,255,.08));
 
   --radius: 22px;
   --shadow: 0 18px 60px rgba(0,0,0,.55);
@@ -71,7 +71,8 @@ body{
 .statValue{ margin-top: 6px; font-weight: 950; font-size: 20px; font-variant-numeric: tabular-nums; }
 .statValue.small{ font-size: 13px; color: rgba(105,240,255,.9); }
 
-.toolbar{ display:flex; justify-content:flex-end; align-items:center; gap: 12px; flex-wrap: wrap; max-width: 100%; }
+.toolbar{ display:flex; justify-content:flex-end; align-items:center; gap: 12px; flex-wrap: wrap; max-width: 100%; width: 100%; }
+
 
 .legend{ display:flex; gap: 10px; flex-wrap: wrap; align-items:center; 
   margin-left: 12px;
@@ -91,7 +92,8 @@ body{
 .s2{ background: var(--t2); }
 .s3{ background: var(--t3); }
 
-.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; align-items:center; max-width: 100%; }
+.actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; align-items:center; max-width: 100%; width: 100%; }
+
 
 .search, .select{ min-width: 110px; max-width: 140px; }
 
@@ -205,7 +207,7 @@ body{
   border-radius: 999px;
   width: 0%;
   transition: width .55s ease;
-  box-shadow: 0 0 18px rgba(255,255,255,.08);
+  box-shadow: 0 0 24px rgba(255,255,255,.10);
 }
 
 .value{
@@ -320,18 +322,34 @@ body{
   position: relative;
   overflow: hidden;
 }
-.hero::before{
+
+/* Constrain header gradient within content width */
+.hero{ position: relative; overflow: visible; }
+.heroInner{
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.heroInner::before{
   content:"";
   position:absolute;
-  inset:-40px -60px -60px -60px;
+  inset:-30px -40px -40px -40px;
   background:
-    radial-gradient(520px 420px at 18% 30%, rgba(46,231,255,.28), transparent 65%),
-    radial-gradient(560px 460px at 42% 20%, rgba(124,92,255,.22), transparent 70%),
-    radial-gradient(560px 520px at 70% 35%, rgba(101,255,154,.16), transparent 72%),
-    linear-gradient(135deg, rgba(46,231,255,.10), rgba(124,92,255,.08));
+    radial-gradient(520px 420px at 18% 30%, rgba(46,231,255,.26), transparent 66%),
+    radial-gradient(560px 460px at 42% 20%, rgba(124,92,255,.20), transparent 70%),
+    radial-gradient(560px 520px at 72% 35%, rgba(101,255,154,.14), transparent 72%),
+    linear-gradient(135deg, rgba(46,231,255,.08), rgba(124,92,255,.06));
   filter: blur(10px);
   opacity: .9;
   pointer-events:none;
   z-index: 0;
 }
-.heroInner{ position: relative; z-index: 1; }
+.heroInner > *{ position: relative; z-index: 1; }
+
+/* Remove default blue focus ring and use subtle custom ring */
+.search:focus, .select:focus, .btn:focus, .fileBtn:focus{ outline: none; }
+.search:focus-visible, .select:focus-visible, .btn:focus-visible, .fileBtn:focus-visible{
+  box-shadow: 0 0 0 2px rgba(46,231,255,.22), 0 0 0 6px rgba(124,92,255,.10);
+  border-color: rgba(46,231,255,.28);
+}
